@@ -32,11 +32,11 @@ y2 = FRAME_WIDTH
 
 #default user information
 user_no = 100
-Gender = 1 # Male = 1 | Female = 2
-age = 32
-eye_color = 1 # Brown = 1 | Black	= 2 | Blue = 3 | Green = 4
+# Gender = 1 # Male = 1 | Female = 2
+# age = 32
+# eye_color = 1 # Brown = 1 | Black	= 2 | Blue = 3 | Green = 4
 
-def run_task(X,Y,U,screen,cogload):
+def run_task(X,Y,T,screen,cogload):
 	global x1, x2, y1, y2
 	one_data = np.zeros((x2-x1, y2-y1, IMAGE_CHANNELS))
 	i = 0
@@ -57,32 +57,36 @@ def run_task(X,Y,U,screen,cogload):
 		one_data[:,:,i%IMAGE_CHANNELS] = gray
 		if(i%IMAGE_CHANNELS == IMAGE_CHANNELS - 1):
 			X.append(one_data)
-			Y.append(np.transpose([screen, 0, 0, 0, cogload, 0, 0]))
-			print(i)
+			Y.append(np.transpose([screen, cogload]))
+			datetime_object = datetime.datetime.now()
+			T.append(datetime_object.timestamp())
+			print(datetime_object)
 			one_data = np.zeros((x2-x1, y2-y1, IMAGE_CHANNELS))
 		i = i + 1
 	print("\nFinished\n")
 
 def h5_create(datapath):
 	x_shape = (RESIZED_IMAGE_HEIGHT, RESIZED_IMAGE_WIDTH, IMAGE_CHANNELS)
-	y_shape = (1,7)
-	u_shape = (4,1) #user no, gender, age, eye color
+	y_shape = (1,2)
 	t_shape = (1,1)
+	# u_shape = (4,1) #user no, gender, age, eye color
+	# t_shape = (1,1)
 	with h5py.File(datapath, mode='a') as h5f:
 		xdset = h5f.create_dataset('X', (0,) + x_shape, maxshape=(None,) + x_shape, dtype='uint8', chunks=(128,) + x_shape)
 		ydset = h5f.create_dataset('Y', (0,) + y_shape, maxshape=(None,) + y_shape, dtype='uint8', chunks=(128,) + y_shape)
-		udset = h5f.create_dataset('U', (0,) + u_shape, maxshape=(None,) + u_shape, dtype='uint8', chunks=(128,) + u_shape)
-		tdset = h5f.create_dataset('T', (0,) + t_shape, maxshape=(None,) + t_shape, dtype='uint8', chunks=(128,) + t_shape)
+		tdset = h5f.create_dataset('T', (0,) + t_shape, maxshape=(None,) + t_shape, dtype='int32', chunks=(128,) + t_shape)
+		# udset = h5f.create_dataset('U', (0,) + u_shape, maxshape=(None,) + u_shape, dtype='uint8', chunks=(128,) + u_shape)
+		# tdset = h5f.create_dataset('T', (0,) + t_shape, maxshape=(None,) + t_shape, dtype='uint8', chunks=(128,) + t_shape)
 
-def h5_append(datapath, U, X, Y, T):
+def h5_append(datapath,X, Y, T):
 	x_shape = (RESIZED_IMAGE_HEIGHT, RESIZED_IMAGE_WIDTH, IMAGE_CHANNELS)
 	y_shape = (1,7)
-	u_shape = (1,4) #user no, gender, age, eye color
-	t_shape = (1,1)
+	# u_shape = (1,4) #user no, gender, age, eye color
+	# t_shape = (1,1)
 	with h5py.File(datapath, mode='a') as h5f:
 		xdset = h5f['X']
 		ydset = h5f['Y']
-		udset = h5f['U']
+		# udset = h5f['U']
 		tdset = h5f['T']
 		
 		for i in range(X.shape[0]):
@@ -93,26 +97,26 @@ def h5_append(datapath, U, X, Y, T):
 			ydset.resize(ydset.shape[0]+1, axis=0)
 			ydset[-1:] = Y[i]
 			print(ydset.shape)
-		for i in range(X.shape[0]):
-			udset.resize(udset.shape[0]+1, axis=0)
-			udset[-1:] = U[0]
-			print(udset.shape)
+		# for i in range(X.shape[0]):
+		# 	udset.resize(udset.shape[0]+1, axis=0)
+		# 	udset[-1:] = U[0]
+		# 	print(udset.shape)
 		for i in range(X.shape[0]):
 			tdset.resize(tdset.shape[0]+1, axis=0)
-			tdset[-1:] = T[0]
+			tdset[-1:] = T[i]
 			print(tdset.shape)
 
 def resize_img(image):
 	global break_flag
-	data = np.zeros((128,192,64), dtype = np.uint8)
-	dim = (192, 128)
+	data = np.zeros((RESIZED_IMAGE_HEIGHT,RESIZED_IMAGE_WIDTH,64), dtype = np.uint8)
+	dim = (RESIZED_IMAGE_WIDTH, RESIZED_IMAGE_HEIGHT)
 	for i in range(64):
 		small = cv2.resize(image[:,:,i], dim)
 		data[:,:,i] = small
 	return data
 
 def crop_and_focus(CAMERA_NO, cap):
-	eye_focus.setup_camera(CAMERA_NO, cap, mode="manual")
+	# eye_focus.setup_camera(CAMERA_NO, cap, mode="manual")
 	x,y = detect_iris.get_cordinates(cap, mode="manual")
 	if(x < IMAGE_HEIGHT/2):
 		x = IMAGE_HEIGHT/2
@@ -141,10 +145,7 @@ filepath = args.filepath + '/'
 CAMERA_NO = args.camera
 
 #user information
-user_no = np.int(input("enter user number :"))
-Gender = input("enter user gender (Male = 1 | Female = 2) : ")
-age = input("enter user age :")
-eye_color = input("enter eye-color (Brown = 1 | Black = 2 | Blue = 3 | Blue-ish green = 4 | Green = 5 | Other = 6) : ")
+user_no = input("Enter user ID :")
 
 cap = cv2.VideoCapture(CAMERA_NO)	
 while(True):
@@ -173,8 +174,9 @@ while(True):
 
 X = []
 Y = []
+T = []
 resized_X = []
-U = np.reshape(np.asarray(np.transpose([np.int(user_no),np.int(Gender),np.int(age),np.int(eye_color)])),[4,1]) #user no, gender, age, eye color
+# U = np.reshape(np.asarray(np.transpose([np.int(user_no),np.int(Gender),np.int(age),np.int(eye_color)])),[4,1]) #user no, gender, age, eye color
 
 # print("Press 's' to start")
 
@@ -183,7 +185,7 @@ U = np.reshape(np.asarray(np.transpose([np.int(user_no),np.int(Gender),np.int(ag
 
 
 
-run_task(X,Y,U,screen,cogload)
+run_task(X,Y,T,screen,cogload)
 
 datetime_object = datetime.datetime.now()
 filename = filepath + "user_" + str(user_no) + " " + str(datetime_object) + ".h5"
@@ -193,10 +195,10 @@ for i in range(len(X)):
 X_train = np.asarray(resized_X)
 Y_train = np.asarray(Y)
 
-T = np.reshape(np.asarray(tasknumber),[1,1])
+T = np.asarray(T)
 
 h5_create(filename)
-h5_append(filename, U, X_train, Y_train, T)
+h5_append(filename, X_train, Y_train, T)
 
 cap.release()
 cv2.destroyAllWindows()

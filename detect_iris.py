@@ -6,8 +6,11 @@ import argparse
 # initialize the list of reference points and boolean indicating
 # whether cropping is being performed or not
 refPt = []
+refPt_x = []
 cropping = False
 cropped = False
+mouse_event = False
+crop_image = []
 
 def bottom_hat_median_blurr(image):
     """
@@ -73,11 +76,18 @@ def detect_pupil(image):
  
 def click_and_crop(event, x, y, flags, param):
     # grab references to the global variables
-    global refPt, cropping, cropped
+    global refPt, cropping, cropped, crop_image, refPt_x
  
     # if the left mouse button was clicked, record the starting
     # (x, y) coordinates and indicate that cropping is being
     # performed
+
+    # if event == cv2.EVENT_LBUTTONDOWN:
+    #     refPt = [(x, y)]
+    #     mouse_event = True
+    #     cropping = True
+
+
     if event == cv2.EVENT_LBUTTONDOWN:
         # print("click")
         refPt = [(x, y)]
@@ -86,6 +96,7 @@ def click_and_crop(event, x, y, flags, param):
     # check to see if the left mouse button was released
     elif event == cv2.EVENT_LBUTTONUP:
         print("Center clicked")
+        refPt_x = [(x, y)]
         # record the ending (x, y) coordinates and indicate that
         # the cropping operation is finished
         # refPt.append((x, y))
@@ -93,26 +104,27 @@ def click_and_crop(event, x, y, flags, param):
         cropped = True
  
         # # draw a rectangle around the region of interest
-        # cv2.rectangle(image, refPt[0], refPt[1], (0, 255, 0), 2)
-        # cv2.imshow("image", image)
+    # cv2.rectangle(crop_image[0], refPt[0], refPt_x[0], (0, 255, 0), 2)
+    # cv2.imshow(crop_image[0])
 
 def click_iris(cap):
-    global cropped
+    global cropped, mouse_event, crop_image
     cropped = False
     ret, image = cap.read()
     print("Please click the center of area you want\n")
     cv2.namedWindow("Click the center of area you want")
     cv2.setMouseCallback("Click the center of area you want", click_and_crop)
     while(True):
+        crop_image.clear()
         clone = image.copy()
         cv2.imshow("Click the center of area you want", image)
         key = cv2.waitKey(1) & 0xFF
         if(key == ord('q') or cropped):
             break
-    if len(refPt) == 2:
-        roi = clone[refPt[0][1]:refPt[0][0], refPt[0][1] + 1 :refPt[0][0] + 1]
-        cv2.imshow("ROI", roi)
-        cv2.waitKey(0)
+    # if len(refPt) == 2:
+    #     roi = clone[0][refPt[0][1]:refPt[0][0], refPt[0][1] + 1 :refPt[0][0] + 1]
+    #     cv2.imshow("ROI", roi)
+    #     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
     return refPt[0][1], refPt[0][0]

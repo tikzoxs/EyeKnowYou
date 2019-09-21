@@ -20,7 +20,7 @@ def add_to_file(datapath, filepath, user, test):
 	
 
 def h5_create(filepath):
-	x_shape = (128, 192, 64)
+	x_shape = (32, 48, 64)
 	y_shape = (1,7)
 	u_shape = (4,1) #user no, gender, age, eye color
 	t_shape = (1,1)
@@ -33,8 +33,8 @@ def h5_create(filepath):
 
 def resize_img(image):
 	global break_flag
-	data = np.zeros((128,192,64), dtype = np.uint8)
-	dim = (192, 128)
+	data = np.zeros((32,48,64), dtype = np.uint8)
+	dim = (48, 32)
 	for i in range(64):
 		small = cv2.resize(image[:,:,i], dim)
 		data[:,:,i] = small
@@ -55,8 +55,8 @@ def h5_append(filepath, X, Y, test):
 		print(Y.shape)
 		# print(T.shape)
 		# print(U.shape)
-		i = 20
-		while(i < int(X.shape[0]) - 20):
+		i = 15
+		while(i < int(X.shape[0]) - 15):
 			data = resize_img(X[i])
 			# if(break_flag):
 			# 	break
@@ -108,8 +108,12 @@ def main():
 	global break_flag
 	# filepath = "/media/tkal976/Transcend/Tharindu/aeye_data/test.h5"
 	# data_files_directory = "/media/tkal976/Transcend/Tharindu/new_eye_data/validation"
-	filepath = "/media/tkal976/Transcend/Tharindu/EyeKnowYou_data/train/train.h5"
-	data_files_directory = "/media/tkal976/Transcend/Tharindu/new_eye_2/train"
+
+	# filepath = "/home/tkal976/Desktop/Black/Codes/git/EyeKnowYouData/validation/validation.h5"
+	# data_files_directory = "/media/tkal976/Transcend/Tharindu/new_eye_2/validation"
+
+	filepath = "/media/tkal976/Transcend/Tharindu/personal_one/yilei/train/train.h5"
+	data_files_directory = "/media/tkal976/Transcend/Tharindu/personal/yilei/train"
 	# filepath = "/home/tkal976/Desktop/Black/Codes/h5edit/temp/Aeye.h5"
 	# data_files_directory = "/home/tkal976/Desktop/Black/Codes/h5edit/edit"
 	h5_create(filepath)
@@ -121,6 +125,7 @@ def main():
 			break
 		user = datapath.split("_")[0]
 		test = datapath.split("_")[1].split('.')[0]
+		print('test : ' + str(test))
 		add_to_file(data_files_directory + '/' + datapath, filepath, user, test)
 
 main()
